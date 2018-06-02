@@ -114,7 +114,7 @@ private:
         eosio_assert(iter != _canvases.end(), "Could not find canvas to update");
 
         _canvases.modify( iter, _self, [&]( auto& canvas) {
-            canvas.canvas = c.canvas;
+            canvas = c;
         });
     }
 
