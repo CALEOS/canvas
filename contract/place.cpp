@@ -7,7 +7,7 @@ class place : public eosio::contract {
     public:
         place(account_name self)
         :eosio::contract(self),
-        _canvases(_self, _self),
+        _rows(_self, _self),
         _users(_self, _self)
         {}
 
@@ -31,11 +31,12 @@ class place : public eosio::contract {
 
         /// @abi action
         void resetcanvas() {
-            reset_canvas();
+            //reset_canvas();
         }
 
     private:
-        const uint64_t canvas_id = 1;
+        const uint16_t size = 1000;
+
         // uint32_t set_pixel_duration = 60 * 5;
         uint32_t set_pixel_duration = 1;
 
@@ -51,18 +52,18 @@ class place : public eosio::contract {
 
         eosio::multi_index<N(users), User> _users;
 
-        //@abi table canvases i64
-        struct Canvas {
+        //@abi table rows i64
+        struct Row {
             uint64_t id;
             vector<uint8_t> data;
 
             uint64_t primary_key() const { return id; }
 
-            EOSLIB_SERIALIZE(Canvas, (id)(data))
+            EOSLIB_SERIALIZE(Row, (id)(data))
         };
 
         // this will only ever have a single row
-        eosio::multi_index<N(canvases), Canvas> _canvases;
+        eosio::multi_index<N(rows), Row> _rows;
 
         // if this returns true it also sets the last_access time
         bool can_access(account_name user) {
@@ -91,11 +92,14 @@ class place : public eosio::contract {
         }
 
         uint8_t color_of(uint32_t pixel) {
-            eosio::print("Inside getpixel\n");
+            eosio::print("Inside color_of\n");
             // pixel is the location of one of 1million pixels
             eosio_assert(pixel <= 999999, "Pixel location must be within range 0-999999");
 
-            Canvas c = get_canvas();
+            uint16_t x = getX(pixel);
+            uint16_t y = getY(pixel);
+
+            Row r = get_row(y);
 
             eosio::print("Inside getpixel, got canvas\n");
             // this tells us if the pixel goes into the left or right half of the uint8_t
@@ -106,7 +110,7 @@ class place : public eosio::contract {
             uint32_t pixel_pair_index = (right_nibble ? pixel - 1 : pixel) / 2;
 
             // this is the current pair of pixels that we're updating
-            uint8_t pixel_pair = c.data[pixel_pair_index];
+            uint8_t pixel_pair = r.data[x];
 
             eosio::print("Inside getpixel pixel_pair is: ");
             eosio::print((uint32_t) pixel_pair);
@@ -122,11 +126,22 @@ class place : public eosio::contract {
             }
         }
 
+        uint16_t getX(uint32_t pixel) {
+            return pixel % size;
+        }
+
+        uint16_t getY(uint32_t pixel) {
+            return (pixel - getX(pixel)) / size;
+        }
+
         void paint(uint32_t pixel, uint8_t color) {
             eosio::print("Inside paint, pixel is: ", pixel, " attempting to set to: ", (uint32_t) color, "\n");
             eosio_assert(pixel <= 999999, "Pixel location must be within range 0-999999");
 
-            Canvas c = get_canvas();
+            uint16_t x = getX(pixel);
+            uint16_t y = getY(pixel);
+
+            Row row = get_row(y);
 
             // this tells us if we should put the color in the right or left half of the byte
             bool right_nibble = pixel % 2 != 0;
@@ -137,7 +152,7 @@ class place : public eosio::contract {
             uint32_t pixel_pair_index = (right_nibble ? pixel - 1 : pixel) / 2;
 
             // this is the current pair of pixels that we're updating
-            uint8_t pixel_pair = c.data[pixel_pair_index];
+            uint8_t pixel_pair = row.data[x];
 
             eosio::print("pixel_pair starting off with value: ", (uint32_t) pixel_pair, "\n");
 
@@ -159,46 +174,43 @@ class place : public eosio::contract {
             pixel_pair = pixel_pair | color;
 
             eosio::print("pixel_pair updated value: ", (uint32_t) pixel_pair, "\n");
-            update_canvas(pixel_pair_index, pixel_pair);
+            auto iter = _rows.find(y);
+
+            eosio_assert(iter != _rows.end(), "Could not find row to update");
+
+            _rows.modify( iter, _self, [&]( auto& row) {
+                row.data[x] = pixel_pair;
+            });
         }
 
+        /*
         void reset_canvas() {
-            auto iter = _canvases.find(canvas_id);
-            if (iter == _canvases.end()) {
+            auto iter = _rows.find();
+            if (iter == _rows.end()) {
                 eosio::print("No canvas to reset");
             } else {
                 eosio::print("Calling erase");
-                _canvases.erase(iter);
+                _rows.erase(iter);
             }
         }
+*/
 
-        Canvas get_canvas() {
-            auto iter = _canvases.find(canvas_id);
-            if (iter == _canvases.end()) {
-                uint64_t byte_count = 500;
-                vector<uint8_t> empty_canvas;
-                empty_canvas.assign(byte_count,0);
-                auto new_canvas = _canvases.emplace( _self, [&](auto& canvas) {
-                    canvas.id = canvas_id;
-                    canvas.data = empty_canvas;
+        Row get_row(uint64_t y) {
+            eosio::print("Inside get_row\n");
+            auto iter = _rows.find(y);
+            if (iter == _rows.end()) {
+                vector<uint8_t> empty_row (500);
+                auto new_row = _rows.emplace( _self, [&](auto& row) {
+                    row.id = y;
+                    row.data = empty_row;
                 });
 
-                return *new_canvas;
-
+                eosio::print("get_row emplace\n");
+                return *new_row;
             } else {
+                eosio::print("get_row found row, returning\n");
                 return *iter;
             }
-        }
-
-        void update_canvas(uint32_t index, uint8_t pixel_pair) {
-            eosio::print("Inside update_canvas\n");
-            auto iter = _canvases.find(canvas_id);
-
-            eosio_assert(iter != _canvases.end(), "Could not find canvas to update");
-
-            _canvases.modify( iter, _self, [&]( auto& canvas) {
-                canvas.data[index] = pixel_pair;
-            });
         }
 
 };
