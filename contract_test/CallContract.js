@@ -15,16 +15,26 @@ const signProvider = (buf, sign) => {
     return sign(buf, user1Private)
 };
 
-console.log("Doing setpixel");
+/*
+eos.contract('place', {signProvider}).then(place => {
+    place.resetcanvas(options).then(result => {
+        console.log("resetcanvas result:");
+        console.log(result)
+    });
+});
+*/
+
 eos.contract('place', {signProvider}).then(place => {
     place.setpixel('user1', 0, 5, options).then(result => {
+        console.log("setpixel result:");
         console.log(result)
     });
 });
 
-console.log("Doing logpixel");
+
 eos.contract('place', {signProvider}).then(place => {
   place.logpixel(0, options).then(result => {
+      console.log("logpixel result:");
       console.log(result)
   });
 });
