@@ -101,18 +101,17 @@ class place : public eosio::contract {
 
             Row r = get_row(y);
 
-            eosio::print("Inside getpixel, got canvas\n");
+            eosio::print("Inside color_of, got canvas\n");
+
             // this tells us if the pixel goes into the left or right half of the uint8_t
             bool right_nibble = pixel % 2 != 0;
 
-            // canvas is an array of 500k uint8_t each having 2 4bit pixels
-
-            uint32_t pixel_pair_index = (right_nibble ? pixel - 1 : pixel) / 2;
+            uint32_t x_index = x / 2;
 
             // this is the current pair of pixels that we're updating
-            uint8_t pixel_pair = r.data[x];
+            uint8_t pixel_pair = r.data[x_index];
 
-            eosio::print("Inside getpixel pixel_pair is: ");
+            eosio::print("Inside color_of pixel_pair is: ");
             eosio::print((uint32_t) pixel_pair);
             eosio::print("\n");
             if (right_nibble) {
@@ -141,6 +140,7 @@ class place : public eosio::contract {
             uint16_t x = getX(pixel);
             uint16_t y = getY(pixel);
 
+            eosio::print("x=", (uint32_t) x, " y=", (uint32_t) y, "\n");
             Row row = get_row(y);
 
             // this tells us if we should put the color in the right or left half of the byte
@@ -149,11 +149,12 @@ class place : public eosio::contract {
             // canvas is an array of 500k uint8_t each having 2 4bit pixels
 
             // this tells us if the pixel goes into the left or right half of the uint8_t
-            uint32_t pixel_pair_index = (right_nibble ? pixel - 1 : pixel) / 2;
+            uint32_t x_index = x / 2;
 
             // this is the current pair of pixels that we're updating
-            uint8_t pixel_pair = row.data[x];
+            uint8_t pixel_pair = row.data[x_index];
 
+            eosio::print("x_index: ", (uint32_t) x_index, "\n");
             eosio::print("pixel_pair starting off with value: ", (uint32_t) pixel_pair, "\n");
 
             // the uint8_t color argument will have a color in the right 4 bits
@@ -179,7 +180,7 @@ class place : public eosio::contract {
             eosio_assert(iter != _rows.end(), "Could not find row to update");
 
             _rows.modify( iter, _self, [&]( auto& row) {
-                row.data[x] = pixel_pair;
+                row.data[x_index] = pixel_pair;
             });
         }
 
