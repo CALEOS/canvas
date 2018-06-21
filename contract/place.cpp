@@ -6,14 +6,24 @@
 
 void place::setpixel(account_name account, uint32_t pixel, uint8_t color) {
     require_auth(account);
-    eosio::print("Starting setpixel for account: ");
-    eosio::print(account);
-    eosio::print(", pixel: ");
-    eosio::print(pixel);
-    eosio::print("\n");
+    eosio::print("Starting setpixel for account: ", account, ", pixel: ", pixel, "\n");
     if (get_access(account)) {
         eosio::print("can_access was true inside of setpixel\n");
         paint(pixel, color);
+    }
+}
+
+void place::setpixels(account_name account, vector<uint32_t> pixels, vector<uint8_t> colors) {
+    eosio_assert(pixels.size() == colors.size(), "Should have the same number of pixels as colors");
+    require_auth(account);
+    eosio::print("Starting setpixels for account: ", account, "\n");
+    // TODO: CHECK TOKEN BALANCE OR SOMETHING HERE!
+    if (get_access(account)) {
+        uint32_t index = 0;
+        for (uint32_t pixel : pixels) {
+            place::paint(pixels[index], colors[index]);
+            index++;
+        }
     }
 }
 
@@ -39,6 +49,13 @@ void place::setcooldown(uint32_t cooldown) {
     place::set_config(c);
 }
 
+void place::setfrozen(bool frozen) {
+    require_one_owner();
+    sConfig c = get_config();
+    c.frozen = frozen;
+    place::set_config(c);
+}
+
 /* ****************************************** */
 /* ------------ Private Functions ----------- */
 /* ****************************************** */
@@ -46,6 +63,14 @@ void place::setcooldown(uint32_t cooldown) {
 
 uint32_t place::get_cooldown() {
     return get_config().cooldown;
+}
+
+bool place::is_frozen() {
+    return get_config().frozen;
+}
+
+void place::require_not_frozen() {
+    eosio_assert(!place::is_frozen(), "Contract is currently frozen");
 }
 
 // if this returns true it also sets the last_access time
@@ -63,12 +88,13 @@ bool place::get_access(account_name account) {
         return true;
     } else {
         place::sAccount to_check = *iter;
+        uint32_t cooldown = get_cooldown();
         uint32_t expires = to_check.last_access + get_cooldown();
         uint32_t now_time = now();
-        eosio::print("expires: ", expires, " and now: ", now_time, "\n");
+        eosio::print("cooldown expires: ", expires, " and now: ", now_time, "\n");
 
-        if (now_time > expires) {
-            eosio::print("not expired, updating access\n");
+        if (cooldown == 0 || now_time > expires) {
+            eosio::print("cooldown expired, updating access\n");
             _accounts.modify( iter, account, [&]( auto& account) {
                 account.last_access = now_time;
                 account.paint_count++;
@@ -76,7 +102,7 @@ bool place::get_access(account_name account) {
 
             return true;
         }
-        eosio::print("it's expired", "\n");
+        eosio::print("cooldown has not expired", "\n");
         return false;
     }
 }
@@ -227,4 +253,4 @@ void place::set_config(sConfig cs) {
     _config.set(cs, _self);
 }
 
-EOSIO_ABI(place, (setpixel)(addowner)(setcooldown))
+EOSIO_ABI(place, (setpixel)(setpixels)(addowner)(setcooldown)(setfrozen))

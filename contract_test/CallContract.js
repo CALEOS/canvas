@@ -24,9 +24,18 @@ eos.contract('place', {signProvider}).then(place => {
 });
 */
 
+/*
 eos.contract('place', {signProvider}).then(place => {
     place.setpixel('user1', 0, 5, options).then(result => {
         console.log("setpixel result:");
+        console.log(result)
+    });
+});
+*/
+
+eos.contract('place2', {signProvider}).then(place => {
+    place.setpixels('user1',[0,1,2,3], [1,2,3,4], options).then(result => {
+        console.log("setpixels result:");
         console.log(result)
     });
 });

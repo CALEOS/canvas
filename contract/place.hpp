@@ -33,8 +33,10 @@ public:
     /* ****************************************** */
 
     void setpixel(account_name account, uint32_t pixel, uint8_t color);
+    void setpixels(account_name account, vector<uint32_t> pixels, vector<uint8_t> colors);
     void addowner(account_name newowner);
     void setcooldown(uint32_t cooldown);
+    void setfrozen(bool frozen);
 
 
 private:
@@ -97,9 +99,11 @@ uint16_t getY(uint32_t pixel);
 bool is_owner(account_name account);
 void require_all_owners();
 void require_one_owner();
+void require_not_frozen();
 void paint(uint32_t pixel, uint8_t color);
 sRow get_row(uint64_t y);
 sConfig get_config();
 void set_config(sConfig cs);
+bool is_frozen();
 
 };
