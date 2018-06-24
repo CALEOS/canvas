@@ -5,11 +5,9 @@
 
 using namespace eosio;
 
-
 /* ****************************************** */
 /* ------------ Types Declarations ---------- */
 /* ****************************************** */
-
 
 constexpr uint16_t size = 1000;
 
@@ -28,12 +26,13 @@ public:
 
     }
 
-    /* ****************************************** */
-    /* ------------ Public Functions ------------ */
-    /* ****************************************** */
+/* ****************************************** */
+/* ------------ Public Functions ------------ */
+/* ****************************************** */
 
     void setpixel(account_name account, uint32_t pixel, uint8_t color);
     void setpixels(account_name account, vector<uint32_t> pixels, vector<uint8_t> colors);
+    void deleteaccount(account_name account);
     void addowner(account_name newowner);
     void setcooldown(uint32_t cooldown);
     void setfrozen(bool frozen);
@@ -41,11 +40,11 @@ public:
 
 private:
 
+enum AccessAction { to_paint, to_delete };
 
 /* ****************************************** */
 /* ------------ Contract Tables ------------- */
 /* ****************************************** */
-
 
 // @abi table accounts i64
 struct sAccount {
@@ -70,7 +69,6 @@ struct sRow {
 typedef eosio::multi_index<N(rows), sRow> RowTable;
 RowTable _rows;
 
-
 /* ****************************************** */
 /* ------------ Contract Config Data -------- */
 /* ****************************************** */
@@ -92,8 +90,8 @@ ConfigSingleton _config ;
 /* ****************************************** */
 
 uint32_t get_cooldown();
-bool get_access(account_name account);
-uint8_t color_of(uint32_t pixel);
+bool get_access(account_name account, AccessAction action);
+//uint8_t color_of(uint32_t pixel);
 uint16_t getX(uint32_t pixel);
 uint16_t getY(uint32_t pixel);
 bool is_owner(account_name account);

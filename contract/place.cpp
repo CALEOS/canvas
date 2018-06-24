@@ -5,26 +5,31 @@
 /* ****************************************** */
 
 void place::setpixel(account_name account, uint32_t pixel, uint8_t color) {
+    require_not_frozen();
     require_auth(account);
-    eosio::print("Starting setpixel for account: ", account, ", pixel: ", pixel, "\n");
-    if (get_access(account)) {
-        eosio::print("can_access was true inside of setpixel\n");
-        paint(pixel, color);
-    }
+    //eosio::print("Starting setpixel for account: ", account, ", pixel: ", pixel, "\n");
+    eosio_assert(get_access(account, to_paint), "Unable to set pixel, cooldown not complete");
+    //eosio::print("can_access was true inside of setpixel\n");
+    paint(pixel, color);
 }
 
 void place::setpixels(account_name account, vector<uint32_t> pixels, vector<uint8_t> colors) {
     eosio_assert(pixels.size() == colors.size(), "Should have the same number of pixels as colors");
+    require_not_frozen();
     require_auth(account);
-    eosio::print("Starting setpixels for account: ", account, "\n");
+    //eosio::print("Starting setpixels for account: ", account, "\n");
     // TODO: CHECK TOKEN BALANCE OR SOMETHING HERE!
-    if (get_access(account)) {
+    if (get_access(account, to_paint)) {
         uint32_t index = 0;
         for (uint32_t pixel : pixels) {
             place::paint(pixels[index], colors[index]);
             index++;
         }
     }
+}
+
+void place::deleteaccount(account_name account) {
+    eosio_assert(get_access(account, to_delete), "Unable to delete, cooldown not completed");
 }
 
 void place::addowner(account_name newowner) {
@@ -60,7 +65,6 @@ void place::setfrozen(bool frozen) {
 /* ------------ Private Functions ----------- */
 /* ****************************************** */
 
-
 uint32_t place::get_cooldown() {
     return get_config().cooldown;
 }
@@ -74,17 +78,19 @@ void place::require_not_frozen() {
 }
 
 // if this returns true it also sets the last_access time
-bool place::get_access(account_name account) {
-    eosio::print("Doing can_access check for account: ", account, "\n");
+bool place::get_access(account_name account, AccessAction action) {
+    //eosio::print("Doing can_access check for account: ", account, "\n");
     auto iter = _accounts.find(account);
     if (iter == _accounts.end()) {
-        auto newaccount = _accounts.emplace( account, [&](auto& a) {
-            a.account = account;
-            a.last_access = now();
-            a.paint_count = 1;
-        });
+        if (action == to_paint) {
+            auto newaccount = _accounts.emplace(account, [&](auto &a) {
+                a.account = account;
+                a.last_access = now();
+                a.paint_count = 1;
+            });
 
-        eosio::print("can_access account not found, create and return true\n");
+            eosio::print("can_access account not found, create and return true\n");
+        }
         return true;
     } else {
         place::sAccount to_check = *iter;
@@ -94,19 +100,24 @@ bool place::get_access(account_name account) {
         eosio::print("cooldown expires: ", expires, " and now: ", now_time, "\n");
 
         if (cooldown == 0 || now_time > expires) {
-            eosio::print("cooldown expired, updating access\n");
-            _accounts.modify( iter, account, [&]( auto& account) {
-                account.last_access = now_time;
-                account.paint_count++;
-            });
+            //eosio::print("cooldown expired, updating access\n");
+            if (action == to_paint) {
+                _accounts.modify(iter, account, [&](auto &account) {
+                    account.last_access = now_time;
+                    account.paint_count++;
+                });
+            } else if (action == to_delete) {
+                _accounts.erase(iter);
+            }
 
             return true;
         }
-        eosio::print("cooldown has not expired", "\n");
+        //eosio::print("cooldown has not expired", "\n");
         return false;
     }
 }
 
+/*
 uint8_t place::color_of(uint32_t pixel) {
     eosio::print("Inside color_of\n");
     // pixel is the location of one of 1million pixels
@@ -140,6 +151,7 @@ uint8_t place::color_of(uint32_t pixel) {
         return pixel_pair >> 4;
     }
 }
+ */
 
 uint16_t place::getX(uint32_t pixel) {
     return pixel % size;
@@ -171,13 +183,13 @@ void place::require_one_owner() {
 }
 
 void place::paint(uint32_t pixel, uint8_t color) {
-    eosio::print("Inside paint, pixel is: ", pixel, " attempting to set to: ", (uint32_t) color, "\n");
+    //eosio::print("Inside paint, pixel is: ", pixel, " attempting to set to: ", (uint32_t) color, "\n");
     eosio_assert(pixel <= 999999, "Pixel location must be within range 0-999999");
 
     uint16_t x = getX(pixel);
     uint16_t y = getY(pixel);
 
-    eosio::print("x=", (uint32_t) x, " y=", (uint32_t) y, "\n");
+    //eosio::print("x=", (uint32_t) x, " y=", (uint32_t) y, "\n");
     place::sRow row = get_row(y);
 
     // this tells us if we should put the color in the right or left half of the byte
@@ -191,8 +203,8 @@ void place::paint(uint32_t pixel, uint8_t color) {
     // this is the current pair of pixels that we're updating
     uint8_t pixel_pair = row.data[x_index];
 
-    eosio::print("x_index: ", (uint32_t) x_index, "\n");
-    eosio::print("pixel_pair starting off with value: ", (uint32_t) pixel_pair, "\n");
+    //eosio::print("x_index: ", (uint32_t) x_index, "\n");
+    //eosio::print("pixel_pair starting off with value: ", (uint32_t) pixel_pair, "\n");
 
     // the uint8_t color argument will have a color in the right 4 bits
 
@@ -211,7 +223,7 @@ void place::paint(uint32_t pixel, uint8_t color) {
     // or the two together
     pixel_pair = pixel_pair | color;
 
-    eosio::print("pixel_pair updated value: ", (uint32_t) pixel_pair, "\n");
+    //eosio::print("pixel_pair updated value: ", (uint32_t) pixel_pair, "\n");
     auto iter = _rows.find(y);
 
     eosio_assert(iter != _rows.end(), "Could not find row to update");
@@ -222,7 +234,7 @@ void place::paint(uint32_t pixel, uint8_t color) {
 }
 
 place::sRow place::get_row(uint64_t y) {
-    eosio::print("Inside get_row\n");
+    //eosio::print("Inside get_row\n");
     auto iter = _rows.find(y);
     if (iter == _rows.end()) {
         vector<uint8_t> empty_row (500);
@@ -231,10 +243,10 @@ place::sRow place::get_row(uint64_t y) {
             row.data = empty_row;
         });
 
-        eosio::print("get_row emplace\n");
+        //eosio::print("get_row emplace\n");
         return *new_row;
     } else {
-        eosio::print("get_row found row, returning\n");
+        //eosio::print("get_row found row, returning\n");
         return *iter;
     }
 }
