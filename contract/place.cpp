@@ -4,7 +4,7 @@
 /* ------------ Public Functions ------------ */
 /* ****************************************** */
 
-void place::setpixel(account_name account, uint32_t pixel, uint8_t color) {
+ACTION place::setpixel(name account, uint32_t pixel, uint8_t color) {
     require_not_frozen();
     require_auth(account);
     //eosio::print("Starting setpixel for account: ", account, ", pixel: ", pixel, "\n");
@@ -13,7 +13,7 @@ void place::setpixel(account_name account, uint32_t pixel, uint8_t color) {
     paint(pixel, color);
 }
 
-void place::setpixels(account_name account, vector<uint32_t> pixels, vector<uint8_t> colors) {
+ACTION place::setpixels(name account, std::vector<uint32_t> pixels, std::vector<uint8_t> colors) {
     eosio_assert(pixels.size() == colors.size(), "Should have the same number of pixels as colors");
     require_not_frozen();
     require_auth(account);
@@ -28,35 +28,36 @@ void place::setpixels(account_name account, vector<uint32_t> pixels, vector<uint
     }
 }
 
-void place::deleteaccount(account_name account) {
+ACTION place::delaccount(name account) {
     eosio_assert(get_access(account, to_delete), "Unable to delete, cooldown not completed");
 }
 
-void place::addowner(account_name newowner) {
-    eosio_assert(!is_owner(newowner), "Account is already an owner " + newowner);
+ACTION place::addowner(name newowner) {
+    eosio_assert(!is_owner(newowner), "Account is already an owner ");
 
-    sConfig config = get_config();
+    config c = get_config();
+    
 
-    bool have_owner = config.owners.size() > 0;
+    bool have_owner = c.owners.size() > 0;
     if (!have_owner)
         require_auth(_self);
     else
         require_all_owners();
 
-    config.owners.push_back(newowner);
-    place::set_config(config);
+    c.owners.push_back(newowner);
+    place::set_config(c);
 }
 
-void place::setcooldown(uint32_t cooldown) {
+ACTION place::setcooldown(uint32_t cooldown) {
     require_one_owner();
-    sConfig c = get_config();
+    config c = get_config();
     c.cooldown = cooldown;
     place::set_config(c);
 }
 
-void place::setfrozen(bool frozen) {
+ACTION place::setfrozen(bool frozen) {
     require_one_owner();
-    sConfig c = get_config();
+    config c = get_config();
     c.frozen = frozen;
     place::set_config(c);
 }
@@ -78,9 +79,9 @@ void place::require_not_frozen() {
 }
 
 // if this returns true it also sets the last_access time
-bool place::get_access(account_name account, AccessAction action) {
+bool place::get_access(name account, AccessAction action) {
     //eosio::print("Doing can_access check for account: ", account, "\n");
-    auto iter = _accounts.find(account);
+    auto iter = _accounts.find(account.value);
     if (iter == _accounts.end()) {
         if (action == to_paint) {
             auto newaccount = _accounts.emplace(account, [&](auto &a) {
@@ -93,7 +94,7 @@ bool place::get_access(account_name account, AccessAction action) {
         }
         return true;
     } else {
-        place::sAccount to_check = *iter;
+        place::accounts to_check = *iter;
         uint32_t cooldown = get_cooldown();
         uint32_t expires = to_check.last_access + get_cooldown();
         uint32_t now_time = now();
@@ -161,8 +162,8 @@ uint16_t place::getY(uint32_t pixel) {
     return (pixel - getX(pixel)) / size;
 }
 
-bool place::is_owner(account_name account) {
-    for (account_name owner : get_config().owners)
+bool place::is_owner(name account) {
+    for (name owner : get_config().owners)
         if (account == owner)
             return true;
 
@@ -170,12 +171,12 @@ bool place::is_owner(account_name account) {
 }
 
 void place::require_all_owners() {
-    for (account_name owner : get_config().owners)
-        eosio_assert(has_auth(owner), "Owner did not authorize this transaction: " + owner);
+    for (name owner : get_config().owners)
+        eosio_assert(has_auth(owner), "Owner did not authorize this transaction");
 }
 
 void place::require_one_owner() {
-    for (account_name owner : get_config().owners)
+    for (name owner : get_config().owners)
         if (has_auth(owner))
             return;
 
@@ -190,7 +191,7 @@ void place::paint(uint32_t pixel, uint8_t color) {
     uint16_t y = getY(pixel);
 
     //eosio::print("x=", (uint32_t) x, " y=", (uint32_t) y, "\n");
-    place::sRow row = get_row(y);
+    place::row row = get_row(y);
 
     // this tells us if we should put the color in the right or left half of the byte
     bool right_nibble = pixel % 2 != 0;
@@ -233,11 +234,11 @@ void place::paint(uint32_t pixel, uint8_t color) {
     });
 }
 
-place::sRow place::get_row(uint64_t y) {
+place::row place::get_row(uint64_t y) {
     //eosio::print("Inside get_row\n");
     auto iter = _rows.find(y);
     if (iter == _rows.end()) {
-        vector<uint8_t> empty_row (500);
+        std::vector<uint8_t> empty_row (500);
         auto new_row = _rows.emplace( _self, [&](auto& row) {
             row.id = y;
             row.data = empty_row;
@@ -251,9 +252,9 @@ place::sRow place::get_row(uint64_t y) {
     }
 }
 
-place::sConfig place::get_config() {
+place::config place::get_config() {
     if (!_config.exists()) {
-        sConfig cs = sConfig{};
+        config cs = config{};
         cs.last_account = _self;
         _config.set(cs, _self);
     };
@@ -261,8 +262,6 @@ place::sConfig place::get_config() {
     return _config.get();
 }
 
-void place::set_config(sConfig cs) {
+void place::set_config(config cs) {
     _config.set(cs, _self);
 }
-
-EOSIO_ABI(place, (setpixel)(setpixels)(addowner)(setcooldown)(setfrozen))

@@ -1,9 +1,10 @@
+cmake_minimum_required(VERSION 3.5)
+project(place VERSION 1.0.0)
 
-file(GLOB ABI_FILES "*.abi")
-configure_file("${ABI_FILES}" "${CMAKE_CURRENT_BINARY_DIR}" COPYONLY)
+find_package(eosio.cdt)
 
-add_wast_executable(TARGET place
-  INCLUDE_FOLDERS "${STANDARD_INCLUDE_FOLDERS}"
-  LIBRARIES libc++ libc eosiolib
-  DESTINATION_FOLDER ${CMAKE_CURRENT_BINARY_DIR}
-)
+### Only generate the wasm
+#add_executable( hello.wasm hello.cpp )
+
+### Generate the wasm and abi
+add_contract( place place place.cpp )

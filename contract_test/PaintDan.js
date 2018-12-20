@@ -1,7 +1,7 @@
 const Eos = require("eosjs");
 
-const user1Private= '5KNfncH6Dc5jHf7rRnsc6uEFZKbrHQkoUTPzU9xSw1UpeCT9mJP';
-const user1Public = 'EOS78PDo23NcGd6jkxR8oTXwWq1b7FHJcd9nq5Tcz9ftRAKd2JKyp';
+const user1Private= '5JjvMvqGJxMciAkU6EcF8ckLqRQ5wwveamNrbYL21Gfbb741exa';
+const user1Public = 'EOS72zQqSTguF3HnJK5s9c3erdrH4mLfLGAmofULwRFtDubJN3aqY';
 const keyProvider = user1Private;
 const eos = Eos({httpEndpoint: 'http://poplexity.net:8888', keyProvider});
 
@@ -42,12 +42,12 @@ for (let i = 0; i < locations.length; i++) {
   let danChunk = dan.slice(i, i + batchSize);
 
 /*
-  await eos.contract('place2', {signProvider}).then(place => {
+*/
+  await eos.contract('place', {signProvider}).then(place => {
       place.setpixels('user1', locationChunk, danChunk, options).then(result => {
       });
   });
-*/
-  console.log(locationChunk);
+//  console.log(locationChunk);
 
   i += (batchSize - 1);
 }
