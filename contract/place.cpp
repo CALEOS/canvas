@@ -87,7 +87,8 @@ bool place::get_access(name account, AccessAction action) {
             auto newaccount = _accounts.emplace(account, [&](auto &a) {
                 a.account = account;
                 a.last_access = now();
-                a.paint_count = 1;
+                a.unclaimed_paint_count = 1;
+                a.total_paint_count = 1;
             });
 
             eosio::print("can_access account not found, create and return true\n");
@@ -105,7 +106,8 @@ bool place::get_access(name account, AccessAction action) {
             if (action == to_paint) {
                 _accounts.modify(iter, account, [&](auto &account) {
                     account.last_access = now_time;
-                    account.paint_count++;
+                    account.unclaimed_paint_count++;
+                    account.total_paint_count++;
                 });
             } else if (action == to_delete) {
                 _accounts.erase(iter);
@@ -198,7 +200,7 @@ void place::paint(uint32_t pixel, uint8_t color) {
 
     // canvas is an array of 500k uint8_t each having 2 4bit pixels
 
-    // this tells us if the pixel goes into the left or right half of the uint8_t
+    // since each byte has 2 pixels, this x_index is the index of the byte (pixel pair) in the row
     uint32_t x_index = x / 2;
 
     // this is the current pair of pixels that we're updating
@@ -207,8 +209,13 @@ void place::paint(uint32_t pixel, uint8_t color) {
     //eosio::print("x_index: ", (uint32_t) x_index, "\n");
     //eosio::print("pixel_pair starting off with value: ", (uint32_t) pixel_pair, "\n");
 
-    // the uint8_t color argument will have a color in the right 4 bits
+    // the uint8_t color argument passed to this method will always have the desired color in the right 4 bits
 
+    // if we are putting this color in the right nibble (4bits) of the byte, then we mask (zero out) the left 
+    // four bits of the color we were passed (just in case they weren't already) and  we mask off the right 4 of the existing byte
+    // else
+    // we are putting the color in the left half of the byte so take the color we have and move the right 4 bits over to the left (leaving zeros on the right)
+    // and mask off (zero out) the left 4 of the existing byte
     if (right_nibble) {
         // mask off the left 4
         color = color & 15;
@@ -221,6 +228,7 @@ void place::paint(uint32_t pixel, uint8_t color) {
         pixel_pair = pixel_pair & 15;
     }
 
+    // now that we have two bytes and we have masked (zeroed out) each where we want to put the color from the other, we'll or them to merge
     // or the two together
     pixel_pair = pixel_pair | color;
 

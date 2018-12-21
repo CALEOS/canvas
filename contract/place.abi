@@ -1,6 +1,6 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Nov  9 05:57:25 2018",
-    "version": "eosio::abi/1.0",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Dec 20 22:23:47 2018",
+    "version": "eosio::abi/1.1",
     "structs": [
         {
             "name": "accounts",
@@ -15,7 +15,11 @@
                     "type": "uint32"
                 },
                 {
-                    "name": "paint_count",
+                    "name": "unclaimed_paint_count",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_paint_count",
                     "type": "uint64"
                 }
             ]
@@ -190,5 +194,6 @@
         }
     ],
     "ricardian_clauses": [],
+    "variants": [],
     "abi_extensions": []
 }

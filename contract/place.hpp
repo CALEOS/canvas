@@ -49,7 +49,8 @@ enum AccessAction { to_paint, to_delete };
 TABLE accounts {
     name account;
     uint32_t last_access;
-    uint64_t paint_count;
+    uint64_t unclaimed_paint_count;
+    uint64_t total_paint_count;
 
     uint64_t primary_key() const { return account.value; }
 };
@@ -102,3 +103,5 @@ void set_config(config cs);
 bool is_frozen();
 
 };
+
+EOSIO_DISPATCH( place, (setpixel)(setpixels)(delaccount)(addowner)(setcooldown)(setfrozen))
