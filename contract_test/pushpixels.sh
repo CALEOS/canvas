@@ -4,7 +4,7 @@
 
 for i in {1..600}
 do
-  d="{\"account\":\"user1\",\"pixel\":$i,\"color\":$(($i % 16))}"
-  cleos push action place2 setpixel "$d" -p user1
-  sleep 1
+  d="{\"account\":\"caleostester\",\"pixel\":$i,\"color\":$(($i % 16))}"
+  telostest push action caleoscanvas setpixel "$d" -p caleostester
+  sleep .1
 done

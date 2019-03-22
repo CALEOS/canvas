@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Dec 20 22:23:47 2018",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jan 11 15:38:51 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -51,6 +51,10 @@
                     "type": "uint32"
                 },
                 {
+                    "name": "pixels_per_paint",
+                    "type": "uint32"
+                },
+                {
                     "name": "last_account",
                     "type": "name"
                 }
@@ -65,6 +69,11 @@
                     "type": "name"
                 }
             ]
+        },
+        {
+            "name": "delconfig",
+            "base": "",
+            "fields": []
         },
         {
             "name": "row",
@@ -135,6 +144,16 @@
                     "type": "uint8[]"
                 }
             ]
+        },
+        {
+            "name": "setpixelsper",
+            "base": "",
+            "fields": [
+                {
+                    "name": "pixels",
+                    "type": "uint32"
+                }
+            ]
         }
     ],
     "types": [],
@@ -147,6 +166,11 @@
         {
             "name": "delaccount",
             "type": "delaccount",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delconfig",
+            "type": "delconfig",
             "ricardian_contract": ""
         },
         {
@@ -167,6 +191,11 @@
         {
             "name": "setpixels",
             "type": "setpixels",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpixelsper",
+            "type": "setpixelsper",
             "ricardian_contract": ""
         }
     ],

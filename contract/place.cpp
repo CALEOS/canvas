@@ -4,27 +4,23 @@
 /* ------------ Public Functions ------------ */
 /* ****************************************** */
 
-ACTION place::setpixel(name account, uint32_t pixel, uint8_t color) {
-    require_not_frozen();
-    require_auth(account);
-    //eosio::print("Starting setpixel for account: ", account, ", pixel: ", pixel, "\n");
-    eosio_assert(get_access(account, to_paint), "Unable to set pixel, cooldown not complete");
-    //eosio::print("can_access was true inside of setpixel\n");
-    paint(pixel, color);
-}
-
 ACTION place::setpixels(name account, std::vector<uint32_t> pixels, std::vector<uint8_t> colors) {
-    eosio_assert(pixels.size() == colors.size(), "Should have the same number of pixels as colors");
+    uint64_t pixels_size = pixels.size();
+    uint64_t colors_size = colors.size();
+    eosio_assert(pixels_size == colors_size, "Should have the same number of pixels as colors");
+
+    uint32_t pixels_per_paint = get_config().pixels_per_paint;
+    eosio_assert(pixels_size <= pixels_per_paint, "Pixel count is more than the max pixels per paint action");
+
     require_not_frozen();
     require_auth(account);
     //eosio::print("Starting setpixels for account: ", account, "\n");
     // TODO: CHECK TOKEN BALANCE OR SOMETHING HERE!
-    if (get_access(account, to_paint)) {
-        uint32_t index = 0;
-        for (uint32_t pixel : pixels) {
-            place::paint(pixels[index], colors[index]);
-            index++;
-        }
+    eosio_assert(get_access(account, to_paint), "Cooldown not complete, please wait and try again");
+    uint32_t index = 0;
+    for (uint32_t pixel : pixels) {
+        place::paint(pixels[index], colors[index]);
+        index++;
     }
 }
 
@@ -37,7 +33,6 @@ ACTION place::addowner(name newowner) {
 
     config c = get_config();
     
-
     bool have_owner = c.owners.size() > 0;
     if (!have_owner)
         require_auth(_self);
@@ -52,6 +47,13 @@ ACTION place::setcooldown(uint32_t cooldown) {
     require_one_owner();
     config c = get_config();
     c.cooldown = cooldown;
+    place::set_config(c);
+}
+
+ACTION place::setpixelsper(uint32_t pixels) {
+    require_one_owner();
+    config c = get_config();
+    c.pixels_per_paint = pixels;
     place::set_config(c);
 }
 

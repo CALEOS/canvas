@@ -35,7 +35,9 @@ public:
     ACTION delaccount(name account);
     ACTION addowner(name newowner);
     ACTION setcooldown(uint32_t cooldown);
+    ACTION setpixelsper(uint32_t pixels);
     ACTION setfrozen(bool frozen);
+    ACTION delconfig();
 
 
 private:
@@ -53,9 +55,10 @@ TABLE accounts {
     uint64_t total_paint_count;
 
     uint64_t primary_key() const { return account.value; }
+    uint64_t by_secondary() const { return total_paint_count; }
 };
 
-typedef eosio::multi_index<name("accounts"), accounts> AccountTable;
+typedef eosio::multi_index<name("accounts"), accounts, eosio::indexed_by<name("paintcount"), eosio::const_mem_fun<accounts, uint64_t, &accounts::by_secondary>>> AccountTable;
 AccountTable _accounts;
 
 TABLE row {
@@ -76,6 +79,7 @@ TABLE config {
     bool frozen = false;
     std::vector<name> owners = {};
     uint32_t cooldown = 300;
+    uint32_t pixels_per_paint = 1;
     name last_account;
 };
 
@@ -104,4 +108,4 @@ bool is_frozen();
 
 };
 
-EOSIO_DISPATCH( place, (setpixel)(setpixels)(delaccount)(addowner)(setcooldown)(setfrozen))
+EOSIO_DISPATCH( place, (setpixels)(delaccount)(addowner)(setcooldown)(setpixelsper)(setfrozen))

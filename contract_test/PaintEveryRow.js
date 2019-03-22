@@ -1,18 +1,21 @@
 const Eos = require("eosjs");
 
-const user1Private= '5KNfncH6Dc5jHf7rRnsc6uEFZKbrHQkoUTPzU9xSw1UpeCT9mJP';
-const user1Public = 'EOS78PDo23NcGd6jkxR8oTXwWq1b7FHJcd9nq5Tcz9ftRAKd2JKyp';
-const keyProvider = user1Private;
-const eos = Eos({httpEndpoint: 'http://poplexity.net:8888', keyProvider});
+const public = 'EOS8ek6TD4kiwbVdSaCyVN5bbYiK1PusfFUdoq8VkmFJE27bbcqem';
+const private= '5J6AMrtdbHhfDU4q2LFoDd4YThL7vmmvwaEaZxkpHqnpfbvE2dU';
+const keyProvider = private;
+const eos = Eos({httpEndpoint: 'http://testnet.telos.caleos.io', keyProvider});
+const user = 'caleostester';
+const contract = 'caleoscanvas';
+
 
 const options = {
     authorization: [
-        'user1@active'
+        user + '@active'
     ]
 };
 
 const signProvider = (buf, sign) => {
-    return sign(buf, user1Private)
+    return sign(buf, private);
 };
 
 let dan = [];
@@ -44,8 +47,8 @@ for (let i = 0; i < locations.length; i++) {
   let locationChunk = locations.slice(i, i + batchSize); 
   let danChunk = dan.slice(i, i + batchSize);
 
-  await eos.contract('place2', {signProvider}).then(place => {
-      place.setpixels('user1', locationChunk, danChunk, options).then(result => {
+  await eos.contract(contract, {signProvider}).then(place => {
+      place.setpixels(user, locationChunk, danChunk, options).then(result => {
       });
   });
 /*
